@@ -13,7 +13,7 @@ Foo done create
 
 foo := Foo clone setInteger(123) setString("Hello World!") save
 
-cond := Iorm Condition clone setExpression(integer == 123)
+cond := Iorm Condition with(integer == 123)
 qry := Iorm Select clone setTable(Foo table) setCondition(cond)
 
 session query(qry) foreach(rec,

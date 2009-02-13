@@ -66,5 +66,11 @@ Condition := Object clone do(
         expression = call message argAt(0)
         self
     )
+
+    with := method(
+        c := self clone
+        c expression = call message argAt(0)
+        c
+    )
 )
 
