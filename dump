@@ -1,0 +1,2 @@
+#!/bin/sh
+echo '.dump' | sqlite3 test.sqlite
