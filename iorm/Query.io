@@ -72,6 +72,7 @@ Update := Object clone do(
         ) join(", "))
         query appendSeq(condition getAsSQL)
         query appendSeq(";")
+        query println
         query
     )
 

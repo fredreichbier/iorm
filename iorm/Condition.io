@@ -1,76 +1,110 @@
 ConditionError := Exception clone
 
-onlyMessage := method(msg,
-    msg clone setNext(nil)
-)
-
-parseMessage := method(table, msg,
-    subject := msg name
-    if(subject == "") then( 
-        /* it is empty. that means that's an expression inside parens */
-        expr := ("(" .. msg arguments map(arg, parseMessage(table, arg)) join(" ") .. ")") asMutable
-        n := msg next
-        while(n isNil not,
-            expr appendSeq(parseMessage(table, n))
-            n = n next
-        )
-        return(expr)
-    ) elseif(OperatorTable operators hasKey(subject)) then(
-        /* do an Io operator -> SQL operator conversion */
-        ret := subject switch(
-            "==",
-                " = #{ parseMessage(table, msg argAt(0)) }" interpolate,
-            "and",
-                " AND (#{ parseMessage(table, msg argAt(0)) })" interpolate
-            "or",
-                " OR (#{ parseMessage(table, msg argAt(0)) })" interpolate        
-        )
-        if(ret isNil,
-            ConditionError raise("Unwrapped operator: #{ subject }" interpolate)
-        )
-        return(ret)
-    ) elseif(table hasField(subject) not) then(
-        /* is an Io object. subsitute. */
-        expr := table session quote(onlyMessage(msg) doInContext(call sender) asSimpleString asSymbol) asMutable
-        n := msg next
-        while(n isNil not,
-            expr appendSeq(parseMessage(table, n))
-            n = n next
-        )
-        return(expr)    
-    ) else(
-        /* is a table field. keep (That is NOT quoted). */
-        expr := onlyMessage(msg) asSimpleString asMutable
-        n := msg next
-        while(n isNil not,
-            expr appendSeq(parseMessage(table, n))
-            n = n next
-        )
-        return(expr)
+parseSimpleCondition := method(msg, context,
+    if(context isNil,
+        context = thisContext
     )
+    one := msg clone setNext(nil) asString
+    field := Iorm Condition Field with(one)
+    op := msg next name
+    two := msg next argAt(0) doInContext(context)
+    value := Iorm Condition Value with(two)
+    node := op switch(
+        "==",
+            Iorm Condition Equals with(field, value),
+        "!=",
+            Iorm Condition Differs with(field, value),
+        ">",
+            Iorm Condition GreaterThan with(field, value),
+        "<",
+            Iorm Condition LessThan with(field, value)
+    )
+    if(node isNil,
+        ConditionError raise("No appropriate SQL operator found for '#{ op }'" interpolate)
+    )
+    node
 )
 
-parseCondition := method(table,
-    parseMessage(table, call message argAt(1))
+parseSimple := method(
+    msg := call message argAt(0)
+    context := call message argAt(1) ifNilEval(thisContext)
+    parseSimpleCondition(msg, context)
 )
 
 Condition := Object clone do(
-    expression := nil
-    table ::= nil
+    children ::= nil
 
-    getAsSQL := method(session,
-        Iorm parseMessage(table, expression)
+    init := method(
+        children = list()
+        resend
     )
 
-    setExpression := method(
-        expression = call message argAt(0)
+    getAsSQL := method(session,
+        children map(getAsSQL(session)) join(" AND ") # right?
+    )
+
+    addChild := method(child,
+        children append(child)
+        self
+    )
+
+    addFilterCondition := method(condition,
+        addChild(condition) # if we use AND to join the conditions, that's ok
+        self
+    )
+
+    filter := method(
+        # for the lazy ones
+        addFilterCondition(Iorm parseSimpleCondition(call message argAt(0)))
         self
     )
 
     with := method(
         c := self clone
-        c expression = call message argAt(0)
+        call evalArgs foreach(child, c addChild(child))
         c
     )
+
+    Value := clone do(
+        value ::= nil
+
+        getAsSQL := method(session,
+            session quote(value asString asSymbol)
+        )
+
+        with := method(value,
+            c := self clone
+            c setValue(value)
+            c
+        )
+    )
+
+    Field := clone do(
+        name ::= nil
+
+        getAsSQL := method(session,
+            name
+        )
+
+        with := method(name,
+            c := self clone
+            c setName(name)
+            c
+        )
+    )
+
+    BinaryOperator := clone do(
+        operator ::= nil
+
+        getAsSQL := method(session,
+            children map(getAsSQL(session)) join(" #{ operator } " interpolate)
+        )
+    )
+
+    Equals := BinaryOperator clone setOperator("=")
+    Differs := BinaryOperator clone setOperator("!=")
+    GreaterThan := BinaryOperator clone setOperator(">")
+    LessThan := BinaryOperator clone setOperator("<")
+    And := BinaryOperator clone setOperator("AND")
 )
 

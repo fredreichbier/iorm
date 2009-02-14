@@ -39,9 +39,11 @@ Model := Object clone do(
                     session executeNow(insert)
                 )
                 /* now do the UPDATE query */
-                query := Iorm Update clone setTable(table) setFields(fields) setCondition(
-                    Iorm Condition clone setExpression(primaryKey == "a")
+                update := Iorm Update clone setTable(table) setFields(fields) setCondition(
+                    pk := (Message clone fromString(primaryKey))
+                    Iorm Condition with(pk == "foo")
                 )
+                session executeNow(update)
             )
         )
     )
