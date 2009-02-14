@@ -4,11 +4,14 @@ parseSimpleCondition := method(msg, context,
     if(context isNil,
         context = thisContext
     )
-    one := msg clone setNext(nil) asString
-    field := Iorm Condition Field with(one)
+    # The first operand is always a field.
+    field := Iorm Condition Field with(msg clone setNext(nil) asString)
+    # The next message is the operator.
     op := msg next name
-    two := msg next argAt(0) doInContext(context)
-    value := Iorm Condition Value with(two)
+    # The first argument of the operator message is the second operand - always a value.
+    value := Iorm Condition Value with(msg next argAt(0) doInContext(context))
+    # Now determine which operator we have and convert it to a Condition object.
+    # If no operator matches, raise an error.
     node := op switch(
         "==",
             Iorm Condition Equals with(field, value),
@@ -22,6 +25,7 @@ parseSimpleCondition := method(msg, context,
     if(node isNil,
         ConditionError raise("No appropriate SQL operator found for '#{ op }'" interpolate)
     )
+    # ... return the node.
     node
 )
 
