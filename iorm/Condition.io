@@ -1,32 +1,83 @@
 ConditionError := Exception clone
 
-parseSimpleCondition := method(msg, context,
+isOperator := method(name,
+    OperatorTable operators hasKey(name)
+)
+
+_Helper := Object clone do(
+    current ::= nil
+)
+
+_parseSimpleCondition := method(left, msg, context,
     if(context isNil,
         context = thisContext
     )
+    if(Iorm isOperator(msg name)) then(
+        # an operator! TODO: differ unary and binary operators (unary have precedence 0?)
+        # The current message is the operator.
+        op := msg name
+        # The first argument of the operator message is the second operand - always a value.
+        value := (
+            m := msg argAt(0) clone
+            next := m next
+            m setNext(nil)
+            if(next isNil,
+                Iorm Condition Value with(m doInContext(context))
+            ,
+                _parseSimpleCondition(
+                    Iorm Condition Field with(m asString),
+                    next,
+                    context
+                )
+            )
+        )
+        # Now determine which operator we have and convert it to a Condition object.
+        # If no operator matches, raise an error.
+        node := op switch(
+            "==",
+                Iorm Condition Equals with(left, value),
+            "!=",
+                Iorm Condition Differs with(left, value),
+            ">",
+                Iorm Condition GreaterThan with(left, value),
+            "<",
+                Iorm Condition LessThan with(left, value),
+            "and",
+                Iorm Condition And with(left, value),
+            "or",
+                Iorm Condition Or with(left, value)
+        )
+        if(node isNil,
+            ConditionError raise("No appropriate SQL operator found for '#{ op }'" interpolate)
+        )
+        # Now, process any further message on the right side recursively and append them to the
+        # current node.
+        current := msg next
+        while(current isNil not,
+            # That's very ugly, but clean. It ensures that we handle a message only once.
+            # TODO: Maybe we could use cached results for that?
+            if(current hasSlot("_condition_handled") not,
+                node = _parseSimpleCondition(node, current, context)
+                current _condition_handled := true
+            )
+            current = current next
+        )
+        # ... return the node.
+        return(node)
+    ) else(
+        # is an ordinary message. evaluate.
+        return(msg doInContext(context))
+    )
+)
+
+parseSimpleCondition := method(msg, context,
     # The first operand is always a field.
     field := Iorm Condition Field with(msg clone setNext(nil) asString)
-    # The next message is the operator.
-    op := msg next name
-    # The first argument of the operator message is the second operand - always a value.
-    value := Iorm Condition Value with(msg next argAt(0) doInContext(context))
-    # Now determine which operator we have and convert it to a Condition object.
-    # If no operator matches, raise an error.
-    node := op switch(
-        "==",
-            Iorm Condition Equals with(field, value),
-        "!=",
-            Iorm Condition Differs with(field, value),
-        ">",
-            Iorm Condition GreaterThan with(field, value),
-        "<",
-            Iorm Condition LessThan with(field, value)
+    if(msg next isNil,
+        field
+    ,
+        _parseSimpleCondition(field, msg next, context)
     )
-    if(node isNil,
-        ConditionError raise("No appropriate SQL operator found for '#{ op }'" interpolate)
-    )
-    # ... return the node.
-    node
 )
 
 parseSimple := method(
@@ -101,7 +152,7 @@ Condition := Object clone do(
         operator ::= nil
 
         getAsSQL := method(session,
-            children map(getAsSQL(session)) join(" #{ operator } " interpolate)
+            "(" .. children map(getAsSQL(session)) join(" #{ operator } " interpolate) .. ")"
         )
     )
 
@@ -110,5 +161,6 @@ Condition := Object clone do(
     GreaterThan := BinaryOperator clone setOperator(">")
     LessThan := BinaryOperator clone setOperator("<")
     And := BinaryOperator clone setOperator("AND")
+    Or := BinaryOperator clone setOperator("OR")
 )
 

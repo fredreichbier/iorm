@@ -10,7 +10,7 @@ session := Iorm Session withSQLite("./test.sqlite")
 #) setSession(session)
 
 foo := "abc"
-cond := Iorm Condition clone filter(FIELD1 != "acb") filter(FIELD2 == foo)
+cond := Iorm Condition clone filter(FIELD1 != "acb" and FIELD2 == foo or BLAH > 123)
 cond getAsSQL(session) println
 #filter(a == foo)
 #Foo done create
