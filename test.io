@@ -4,7 +4,7 @@ session := Iorm Session withSQLite("./test.sqlite")
 
 Foo := Iorm Model clone do(
     setTableName("Foo")
-    newField("integer", Iorm IntegerField clone)
+    newField("integer", Iorm IntegerField clone setIsPrimaryKey(true))
     newField("string", Iorm VarcharField clone setLength(50))
     setPrimaryKey("integer")
 ) setSession(session)

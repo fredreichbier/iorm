@@ -23,6 +23,7 @@ Session := Object clone do(
     commit := method(
         /* process all statements in `queue`. Return self. */
         queue foreach(stmt,
+            stmt getAsSQL println
             self connection execute(stmt getAsSQL)
         )
         queue = list() # TODO: something like `clear`?
@@ -31,6 +32,7 @@ Session := Object clone do(
 
     execute := method(query,
         commit
+        query getAsSQL println
         executeRaw(query getAsSQL)
     )
     

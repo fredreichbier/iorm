@@ -6,10 +6,20 @@ Field := Object clone do(
     name ::= nil
     value := nil
     table ::= nil
+    flags ::= nil
+
+    init := method(
+        setFlags(list())
+        resend
+    )
 
     getNameAsSQL := method(
         # The name is not quoted. TODO: Fine?
         name
+    )
+
+    getFlagsAsSQL := method(
+        flags join(" ")
     )
     
     quote := method(value,
@@ -26,6 +36,17 @@ Field := Object clone do(
             Iorm InvalidValueError raise("#{ new_value } is not a #{ ioProto type }" interpolate)
         )
     )
+
+    addFlag := method(flag,
+        flags append(flag)
+    )
+
+    newFlagSetter := method(sql,
+        # well, that's an ugly macro. can it be done nicer?
+        doString("""method(is, if(is, flags appendIfAbsent("#{ sql }"), flags remove("#{ sql }")); self)""" interpolate)
+    )
+
+    setIsPrimaryKey := newFlagSetter("PRIMARY KEY")
 )
 
 IntegerField := Field clone do(
@@ -41,7 +62,7 @@ IntegerField := Field clone do(
     )
 
     getCreateQuery := method(
-        """#{ quote(name) } #{ quote(typeName) }""" interpolate // TODO: `NOT NULL ...`
+        """#{ quote(name) } #{ typeName } #{ getFlagsAsSQL }""" interpolate
     )
 )
 
@@ -59,6 +80,6 @@ VarcharField := Field clone do(
     )
 
     getCreateQuery := method(
-        """#{ quote(name) } #{ quote(typeName) }(#{ length })""" interpolate // TODO: `NOT NULL ...`
+        """#{ quote(name) } #{ typeName }(#{ length }) #{ getFlagsAsSQL }""" interpolate
     )
 )

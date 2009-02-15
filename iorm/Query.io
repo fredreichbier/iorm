@@ -34,7 +34,7 @@ CreateTable := Object clone do(
         table fields foreach(field,
             queries append(field getCreateQuery)
         )
-        return("""CREATE TABLE #{ table getNameAsSQL } ( #{ queries join(", \n") } );""" interpolate)
+        return("""CREATE TABLE #{ table getNameAsSQL } ( #{ queries join(", ") } );""" interpolate)
     )
 )
 
@@ -49,8 +49,8 @@ InsertInto := Object clone do(
             columns append(field getNameAsSQL)
             values append(field getValueAsSQL)
         )
-        return(("""INSERT INTO #{ table getNameAsSQL } (#{ columns join(",") }) """ ..
-        """VALUES (#{ values join(",") });""") interpolate)
+        return(("""INSERT INTO #{ table getNameAsSQL } (#{ columns join(", ") }) """ ..
+        """VALUES (#{ values join(", ") });""") interpolate)
     )
 )
 
