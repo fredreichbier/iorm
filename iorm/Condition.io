@@ -19,6 +19,10 @@ _parseSimpleCondition := method(left, msg, context,
         # The first argument of the operator message is the second operand - always a value.
         value := (
             m := msg argAt(0) clone
+            # if there is a bracket, use the first argument. TODO: correct?
+            while(m name == "",
+                m = m argAt(0)
+            )
             next := m next
             m setNext(nil)
             if(next isNil,
@@ -57,7 +61,7 @@ _parseSimpleCondition := method(left, msg, context,
             # That's very ugly, but clean. It ensures that we handle a message only once.
             # TODO: Maybe we could use cached results for that?
             if(current hasSlot("_condition_handled") not,
-                node = _parseSimpleCondition(node, current, context)
+                node = _parseSimpleCondition(node, current clone setNext(nil), context)
                 current _condition_handled := true
             )
             current = current next
@@ -71,6 +75,9 @@ _parseSimpleCondition := method(left, msg, context,
 )
 
 parseSimpleCondition := method(msg, context,
+    # Ugly hack, but seems to be needed because messages are not parsed
+    # properly if inside parens (a == 3 instead of a ==(3)). Why?
+    msg = Message fromString(msg asString)
     # The first operand is always a field.
     field := Iorm Condition Field with(msg clone setNext(nil) asString)
     if(msg next isNil,
