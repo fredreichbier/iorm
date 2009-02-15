@@ -5,4 +5,5 @@ Iorm := Object clone do(
     doRelativeFile("Query.io")
     doRelativeFile("Session.io")
     doRelativeFile("Mapper.io")
+    doRelativeFile("Sugar.io")
 )

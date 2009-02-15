@@ -87,4 +87,9 @@ Model := Object clone do(
         session executeDeferred(query)
         self
     )
+
+    assignField := method(
+        name println
+        pr println
+    )
 )
