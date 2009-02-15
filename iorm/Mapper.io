@@ -30,20 +30,42 @@ Model := Object clone do(
                     field setValue(self getSlot(field name)) # TODO: Validation?
                 )
             )
+
+            getFieldByName := method(name,
+                fields foreach(field,
+                    if(field name == name,
+                        return(field)
+                    )
+                )
+            )
             
             save := method(
-                sync
                 if(alreadyExisting not,
-                    /* we have to make an INSERT query first */
+                    /* we have to make INSERT query first */
+                    sync
                     insert := Iorm InsertInto clone setTable(table) setFields(fields)
                     session executeNow(insert)
+                    alreadyExisting = true
+                ,
+                    /* now do the UPDATE query */
+                    condition := Iorm Condition withTable(table) addFilterCondition(
+                            Iorm Condition Equals withTable(table) addChildren(
+                                Iorm Condition Field with(table,
+                                    primaryKey
+                                ),
+                                Iorm Condition Value with(table,
+                                    getFieldByName(primaryKey) value
+                                )
+                            )
+                    )
+                    # TODO: can the primary key be updated? No, i think
+                    sync
+                    update := Iorm Update clone setTable(table) setFields(fields) setCondition(
+                        condition
+                    )
+                    session executeNow(update)
                 )
-                /* now do the UPDATE query */
-                update := Iorm Update clone setTable(table) setFields(fields) setCondition(
-                    pk := (Message clone fromString(primaryKey))
-                    Iorm Condition with(pk == "foo")
-                )
-                session executeNow(update)
+                self
             )
         )
     )

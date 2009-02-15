@@ -8,7 +8,7 @@ _Helper := Object clone do(
     current ::= nil
 )
 
-_parseSimpleCondition := method(left, msg, context,
+_parseSimpleCondition := method(table, left, msg, context,
     if(context isNil,
         context = thisContext
     )
@@ -26,10 +26,11 @@ _parseSimpleCondition := method(left, msg, context,
             next := m next
             m setNext(nil)
             if(next isNil,
-                Iorm Condition Value with(m doInContext(context))
+                Iorm Condition Value with(table, m doInContext(context))
             ,
                 _parseSimpleCondition(
-                    Iorm Condition Field with(m asString),
+                    table,
+                    Iorm Condition Field with(table, m asString),
                     next,
                     context
                 )
@@ -39,17 +40,17 @@ _parseSimpleCondition := method(left, msg, context,
         # If no operator matches, raise an error.
         node := op switch(
             "==",
-                Iorm Condition Equals with(left, value),
+                Iorm Condition Equals with(table, left, value),
             "!=",
-                Iorm Condition Differs with(left, value),
+                Iorm Condition Differs with(table, left, value),
             ">",
-                Iorm Condition GreaterThan with(left, value),
+                Iorm Condition GreaterThan with(table, left, value),
             "<",
-                Iorm Condition LessThan with(left, value),
+                Iorm Condition LessThan with(table, left, value),
             "and",
-                Iorm Condition And with(left, value),
+                Iorm Condition And with(table, left, value),
             "or",
-                Iorm Condition Or with(left, value)
+                Iorm Condition Or with(table, left, value)
         )
         if(node isNil,
             ConditionError raise("No appropriate SQL operator found for '#{ op }'" interpolate)
@@ -61,7 +62,7 @@ _parseSimpleCondition := method(left, msg, context,
             # That's very ugly, but clean. It ensures that we handle a message only once.
             # TODO: Maybe we could use cached results for that?
             if(current hasSlot("_condition_handled") not,
-                node = _parseSimpleCondition(node, current clone setNext(nil), context)
+                node = _parseSimpleCondition(table, node, current clone setNext(nil), context)
                 current _condition_handled := true
             )
             current = current next
@@ -74,26 +75,27 @@ _parseSimpleCondition := method(left, msg, context,
     )
 )
 
-parseSimpleCondition := method(msg, context,
+parseSimpleCondition := method(table, msg, context,
     # Ugly hack, but seems to be needed because messages are not parsed
     # properly if inside parens (a == 3 instead of a ==(3)). Why?
     msg = Message fromString(msg asString)
     # The first operand is always a field.
-    field := Iorm Condition Field with(msg clone setNext(nil) asString)
+    field := Iorm Condition Field with(table, msg clone setNext(nil) asString)
     if(msg next isNil,
         field
     ,
-        _parseSimpleCondition(field, msg next, context)
+        _parseSimpleCondition(table, field, msg next, context)
     )
 )
 
-parseSimple := method(
-    msg := call message argAt(0)
-    context := call message argAt(1) ifNilEval(thisContext)
-    parseSimpleCondition(msg, context)
+parseSimple := method(table,
+    msg := call message argAt(1)
+    context := call message argAt(2) ifNilEval(thisContext)
+    parseSimpleCondition(table, msg, context)
 )
 
 Condition := Object clone do(
+    table ::= nil
     children ::= nil
 
     init := method(
@@ -101,12 +103,21 @@ Condition := Object clone do(
         resend
     )
 
-    getAsSQL := method(session,
-        children map(getAsSQL(session)) join(" AND ") # right?
+    _quote := method(n,
+        table session quote(n)
+    )
+
+    getAsSQL := method(
+        children map(getAsSQL) join(" AND ") # right?
     )
 
     addChild := method(child,
         children append(child)
+        self
+    )
+
+    addChildren := method(
+        call evalArgs foreach(child, addChild(child))
         self
     )
 
@@ -117,25 +128,33 @@ Condition := Object clone do(
 
     filter := method(
         # for the lazy ones
-        addFilterCondition(Iorm parseSimpleCondition(call message argAt(0)))
+        addFilterCondition(Iorm parseSimpleCondition(table, call message argAt(0)))
         self
     )
 
-    with := method(
+    with := method(table,
+        c := self withTable(table)
+        for(i, 1, call argCount - 1,
+            c addChild(call evalArgAt(i))
+        )
+        c
+    )
+
+    withTable := method(table,
         c := self clone
-        call evalArgs foreach(child, c addChild(child))
+        c setTable(table)
         c
     )
 
     Value := clone do(
         value ::= nil
 
-        getAsSQL := method(session,
-            session quote(value asString asSymbol)
+        getAsSQL := method(
+            _quote(value asString asSymbol)
         )
 
-        with := method(value,
-            c := self clone
+        with := method(table, value,
+            c := self withTable(table)
             c setValue(value)
             c
         )
@@ -144,12 +163,12 @@ Condition := Object clone do(
     Field := clone do(
         name ::= nil
 
-        getAsSQL := method(session,
+        getAsSQL := method(
             name
         )
 
-        with := method(name,
-            c := self clone
+        with := method(table, name,
+            c := self withTable(table)
             c setName(name)
             c
         )
@@ -158,8 +177,8 @@ Condition := Object clone do(
     BinaryOperator := clone do(
         operator ::= nil
 
-        getAsSQL := method(session,
-            "(" .. children map(getAsSQL(session)) join(" #{ operator } " interpolate) .. ")"
+        getAsSQL := method(
+            "(" .. children map(getAsSQL) join(" #{ operator } " interpolate) .. ")"
         )
     )
 

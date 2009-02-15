@@ -8,7 +8,8 @@ Field := Object clone do(
     table ::= nil
 
     getNameAsSQL := method(
-        quote(name)
+        # The name is not quoted. TODO: Fine?
+        name
     )
     
     quote := method(value,

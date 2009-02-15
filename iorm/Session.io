@@ -23,7 +23,7 @@ Session := Object clone do(
     commit := method(
         /* process all statements in `queue`. Return self. */
         queue foreach(stmt,
-            self connection execute(stmt getAsSQL(self))
+            self connection execute(stmt getAsSQL)
         )
         queue = list() # TODO: something like `clear`?
         self
@@ -31,11 +31,11 @@ Session := Object clone do(
 
     execute := method(query,
         commit
-        executeRaw(query getAsSQL(self))
+        executeRaw(query getAsSQL)
     )
     
     executeRaw := method(query,
-        self connection execute(query)
+        self connection execute(query asSymbol)
     )
 
     executeNow := getSlot("execute") # actually a synonym
@@ -48,12 +48,12 @@ Session := Object clone do(
 
     query := method(qry,
         /* no deferred queries ... return DBIConn */
-        connection query(qry getAsSQL(self))
+        connection query(qry getAsSQL)
     )
 
     printQueue := method(
         queue foreach(stmt,
-            stmt getAsSQL(self) println
+            stmt getAsSQL println
         )
     )
     

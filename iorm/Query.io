@@ -1,5 +1,7 @@
 Query := Object clone do(
-    getAsSQL := method(session,
+    session ::= nil
+
+    getAsSQL := method(
         ""
     )
 )
@@ -7,9 +9,9 @@ Query := Object clone do(
 Select := Object clone do(
     table ::= nil
     fields ::= nil 
-    condition := nil
+    condition ::= nil
 
-    getAsSQL := method(session,
+    getAsSQL := method(
         field_names := nil
         if(fields isNil,
             field_names = "*"
@@ -18,24 +20,16 @@ Select := Object clone do(
         )
         where_clause := ""
         if(condition isNil not,
-            where_clause = " WHERE #{ condition getAsSQL }" interpolate
+            where_clause = " WHERE #{ condition getAsSQL(session) }" interpolate
         )
         return("""SELECT #{ field_names } FROM #{ table getNameAsSQL }#{ where_clause };""" interpolate)
-    )
-
-    setCondition := method(new_condition,
-        if(new_condition table isNil,
-            new_condition setTable(table)
-        )
-        condition = new_condition
-        self
     )
 )
 
 CreateTable := Object clone do(
     table ::= nil
     
-    getAsSQL := method(session,
+    getAsSQL := method(
         queries := list()
         table fields foreach(field,
             queries append(field getCreateQuery)
@@ -48,7 +42,7 @@ InsertInto := Object clone do(
     table ::= nil
     fields ::= nil
 
-    getAsSQL := method(session,
+    getAsSQL := method(
         columns := list()
         values := list()
         fields foreach(field,
@@ -63,24 +57,15 @@ InsertInto := Object clone do(
 Update := Object clone do(
     table ::= nil
     fields ::= nil
-    condition := nil
+    condition ::= nil
 
-    getAsSQL := method(session,
+    getAsSQL := method(
         query := """UPDATE #{ table getNameAsSQL } SET """ interpolate asMutable
         query appendSeq(fields map(field,
-            """#{ field getNameAsSQL } = #{ field getValueAsSQL} """ interpolate
+            """#{ field getNameAsSQL } = #{ field getValueAsSQL}""" interpolate
         ) join(", "))
-        query appendSeq(condition getAsSQL)
+        query appendSeq(" WHERE #{ condition getAsSQL(session) }" interpolate)
         query appendSeq(";")
-        query println
         query
-    )
-
-    setCondition := method(new_condition,
-        if(new_condition table isNil,
-            new_condition setTable(table)
-        )
-        condition = new_condition
-        self
     )
 )
