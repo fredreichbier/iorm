@@ -94,6 +94,23 @@ parseSimple := method(table,
     parseSimpleCondition(table, msg, context)
 )
 
+_constructTree := method(table, msg, context,
+    name := msg name
+    if(Iorm Condition hasSlot(name),
+        arguments := msg arguments map(a, _constructTree(table, a, context))
+        arguments prepend(table)
+        prot := Iorm Condition getSlot(name)
+        prot performWithArgList("with", arguments)
+    ,
+        msg doInContext(context)
+    )
+)
+
+constructTree := method(table,
+    msg := call message argAt(1)
+    _constructTree(table, msg, call sender)
+)
+
 Condition := Object clone do(
     table ::= nil
     children ::= nil

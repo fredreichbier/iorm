@@ -49,12 +49,10 @@ Model := Object clone do(
                 ,
                     /* now do the UPDATE query */
                     condition := Iorm Condition withTable(table) addFilterCondition(
-                            Iorm Condition Equals withTable(table) addChildren(
-                                Iorm Condition Field with(table,
-                                    primaryKey
-                                ),
-                                Iorm Condition Value with(table,
-                                    getFieldByName(primaryKey) value
+                            Iorm constructTree(table,
+                                Equals(
+                                    Field(primaryKey),
+                                    Value(getFieldByName(primaryKey) value)
                                 )
                             )
                     )
