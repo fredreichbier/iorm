@@ -27,7 +27,9 @@ Field := Object clone do(
     )
 
     setValue := method(new_value,
-        checkValue(new_value)
+        if(new_value isNil not,
+            checkValue(new_value)
+        )
         value = new_value
     )
 
@@ -47,6 +49,8 @@ Field := Object clone do(
     )
 
     setIsPrimaryKey := newFlagSetter("PRIMARY KEY")
+    setAutoIncrement := newFlagSetter("AUTO INCREMENT")
+    setNotNull := newFlagSetter("NOT NULL")
 )
 
 IntegerField := Field clone do(
@@ -54,7 +58,7 @@ IntegerField := Field clone do(
     setIoProto(Number)
 
     getValueAsSQL := method(
-        quote(value asString asSymbol)
+        quote(value)
     )
 
     setValueFromSQL := method(sql,
@@ -72,7 +76,7 @@ VarcharField := Field clone do(
     length ::= 50
 
     getValueAsSQL := method(
-        quote(value asSymbol)
+        quote(value)
     )
 
     setValueFromSQL := method(sql,
@@ -81,5 +85,33 @@ VarcharField := Field clone do(
 
     getCreateQuery := method(
         """#{ quote(name) } #{ typeName }(#{ length }) #{ getFlagsAsSQL }""" interpolate
+    )
+)
+
+OneToManyField := Field clone do(
+    reference ::= nil
+
+    getValueAsSQL := method(
+        value getPrimaryKeyField getValueAsSQL
+    )
+
+    setValueFromSQL := method(sql,
+        "setting one to many field from #{ sql }" interpolate println
+    )
+    
+    getCreateQuery := method(
+        """#{ quote(name) } #{ reference getPrimaryKeyField typeName }""" interpolate
+    )
+
+    checkValue := method(value,
+        if(value hasProto(reference) not,
+            Iorm InvalidValueError raise("#{ value } is not a #{ reference }" interpolate)
+        )
+    )
+
+    with := method(reference_,
+        c := self clone
+        c setReference(reference_)
+        c
     )
 )

@@ -34,7 +34,7 @@ CreateTable := Object clone do(
         table fields foreach(field,
             queries append(field getCreateQuery)
         )
-        return("""CREATE TABLE #{ table getNameAsSQL } ( #{ queries join(", ") } );""" interpolate)
+        return("""CREATE TABLE #{ table getNameAsSQL } (#{ queries join(", ") });""" interpolate)
     )
 )
 

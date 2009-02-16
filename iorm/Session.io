@@ -60,7 +60,11 @@ Session := Object clone do(
     )
     
     quote := method(s,
-        connection quote(s)
+        if(s isNil,
+            "NULL"
+        ,
+            connection quote(s asSymbol)
+        )
     )
 )
 

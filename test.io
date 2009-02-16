@@ -2,22 +2,24 @@ doRelativeFile("iorm/Iorm.io")
 
 session := Iorm Session withSQLite("./test.sqlite")
 
-Foo := Iorm Model clone do(
-    setTableName("Foo")
-    newField("integer", Iorm IntegerField clone setIsPrimaryKey(true))
-    newField("string", Iorm VarcharField clone setLength(50))
-    setPrimaryKey("integer")
-) setSession(session)
-Foo done create
-
-foo := Foo clone setInteger(123) setString("Hello World!") save
-foo setInteger(456) save
-
-cond := Iorm Condition with(Foo table) filter(integer == 456)
-qry := Iorm Select clone setTable(Foo table) setCondition(cond)
-
-res := session query(qry)
-res foreach(rec,
-    rec at("integer") println
-    rec at("string") println
+Author := Iorm Model with(session) setup(
+    setTableName("authors")
+    newField("name", Iorm VarcharField clone setLength(50))
 )
+Author create
+
+Book := Iorm Model with(session) setup(
+    setTableName("books")
+    newField("author", Iorm OneToManyField with(Author))
+    newField("name", Iorm VarcharField clone setLength(50))
+)
+Book create
+
+max_goldt := Author clone setName("Max Goldt")
+qq := Book clone setName("QQ") setAuthor(max_goldt)
+max_goldt save
+qq save
+
+"Author of #{ qq name } is #{ qq author name }!" interpolate println
+
+session commit
