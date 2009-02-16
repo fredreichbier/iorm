@@ -167,7 +167,12 @@ Condition := Object clone do(
         value ::= nil
 
         getAsSQL := method(
-            _quote(value asString asSymbol)
+            # allow fields or instances as values
+            if(value hasSlot("getValueAsSQL"),
+                value getValueAsSQL
+            ,
+                _quote(value asString asSymbol)
+            )
         )
 
         with := method(table, value,

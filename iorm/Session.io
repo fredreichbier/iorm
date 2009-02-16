@@ -50,6 +50,7 @@ Session := Object clone do(
 
     query := method(qry,
         /* no deferred queries ... return DBIConn */
+        qry getAsSQL println
         connection query(qry getAsSQL)
     )
 

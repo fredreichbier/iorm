@@ -58,7 +58,8 @@ IntegerField := Field clone do(
     setIoProto(Number)
 
     getValueAsSQL := method(
-        quote(value)
+        #quote(value) # TODO: really quoted?
+        value
     )
 
     setValueFromSQL := method(sql,
@@ -88,7 +89,7 @@ VarcharField := Field clone do(
     )
 )
 
-OneToManyField := Field clone do(
+ForeignKeyField := Field clone do(
     reference ::= nil
 
     getValueAsSQL := method(
@@ -104,8 +105,8 @@ OneToManyField := Field clone do(
     )
 
     checkValue := method(value,
-        if(value hasProto(reference) not,
-            Iorm InvalidValueError raise("#{ value } is not a #{ reference }" interpolate)
+        if(value isInstanceOf(reference) not,
+            Iorm InvalidValueError raise("#{ value } is not a #{ reference } instance" interpolate)
         )
     )
 
