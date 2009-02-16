@@ -22,12 +22,11 @@ mind_boggling := Book instance setName("Mind-boggling") setAuthor(max_goldt)
 Author saveAll
 Book saveAll
 
-#"Author of #{ qq name } is #{ qq author name }!" interpolate println
-
 Author queryFromSimpleCondition(name == "Max Goldt") println
 
-"Found:" println
-Book queryFromSimpleCondition(author == max_goldt) foreach(book,
+books := Book queryFromSimpleCondition(author == max_goldt)
+"Max Goldt wrote:" println
+books foreach(book,
     (" * " .. book name) println
 )
 
