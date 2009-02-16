@@ -8,10 +8,33 @@ Model := Object clone do(
     tableName ::= nil
     table ::= nil
     instances := nil
+    to_be_saved := nil
 
     init := method(
         fields = list()
         instances = list()
+        to_be_saved = list()
+    )
+
+    addToBeSaved := method(instance,
+        to_be_saved append(WeakLink clone setLink(instance))
+        self
+    )
+
+    removeToBeSaved := method(instance,
+        i := to_be_saved detect(item, item link == instance)
+        if(i isNil not,
+            to_be_saved remove(i)
+        )
+        self
+    )
+
+    saveAll := method(
+        to_be_saved foreach(instance,
+            instance link save
+        )
+        to_be_saved empty
+        self
     )
 
     done := method(
@@ -114,10 +137,19 @@ Instance := Object clone do(
         model = new_model
         model registerInstance(self)
         model fields foreach(field,
-            self newSlot(field name, field value)
+            self newToBeSavedSlot(field name, field value)
             self fields append(field clone)
         )
         setValueOf(model primaryKey, model table generateID)
+    )
+
+    newToBeSavedSlot := method(name, initial,
+        setter := "set" .. (name asCapitalized)
+        self setSlot(setter,
+            doString("method(new, self #{ name } = new; model addToBeSaved(self); self)" interpolate)
+        )
+        self setSlot(name, initial)
+        initial
     )
 
     init := method(
@@ -169,7 +201,7 @@ Instance := Object clone do(
             condition := Iorm Condition withTable(model table) addFilterCondition(
                     Iorm constructTree(model table,
                         Equals(
-                            Field(primaryKey),
+                            Field(model primaryKey),
                             Value(getFieldByName(model primaryKey) value)
                         )
                     )

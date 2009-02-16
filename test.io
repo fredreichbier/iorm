@@ -19,9 +19,8 @@ max_goldt := Author instance setName("Max Goldt")
 qq := Book instance setName("QQ") setAuthor(max_goldt)
 mind_boggling := Book instance setName("Mind-boggling") setAuthor(max_goldt)
 
-max_goldt save
-qq save
-mind_boggling save
+Author saveAll
+Book saveAll
 
 #"Author of #{ qq name } is #{ qq author name }!" interpolate println
 
