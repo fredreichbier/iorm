@@ -146,7 +146,10 @@ Instance := Object clone do(
     newToBeSavedSlot := method(name, initial,
         setter := "set" .. (name asCapitalized)
         self setSlot(setter,
-            doString("method(new, self #{ name } = new; model addToBeSaved(self); self)" interpolate)
+            doString("""method(new,
+                getFieldByName("#{ name }") setValue(new)
+                self #{ name } = new
+                model addToBeSaved(self); self)""" interpolate)
         )
         self setSlot(name, initial)
         initial
