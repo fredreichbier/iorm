@@ -29,12 +29,10 @@ e catch(Iorm InvalidValueError,
 Author saveAll
 Book saveAll
 
-Author queryFromSimpleCondition(name == "Max Goldt") println
+Author objects filter(name == "Max Goldt") println
 
-books := Book queryFromSimpleCondition(author == max_goldt)
+books := Book objects filter(author == max_goldt)
 "Max Goldt wrote:" println
 books foreach(book,
     (" * " .. book name) println
 )
-
-session commit

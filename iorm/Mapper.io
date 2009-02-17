@@ -9,11 +9,13 @@ Model := Object clone do(
     table ::= nil
     instances := nil
     to_be_saved := nil
+    objects := nil
 
     init := method(
         fields = list()
         instances = list()
         to_be_saved = list()
+        objects = Iorm ObjectsManager with(self)
     )
 
     addToBeSaved := method(instance,
@@ -75,8 +77,12 @@ Model := Object clone do(
     )
 
     queryFromSimpleCondition := method(
+        _queryFromSimpleCondition(call message argAt(0))
+    )
+
+    _queryFromSimpleCondition := method(msg,
         # parse
-        condition := Iorm parseSimpleCondition(table, call message argAt(0))
+        condition := Iorm parseSimpleCondition(table, msg)
         # make query
         query := Iorm Select clone setTable(table) setCondition(condition)
         query setFields(list(getPrimaryKeyField))
@@ -240,5 +246,24 @@ Instance := Object clone do(
     getValueAsSQL := method(
         # make it usable for conditions
         getPrimaryKeyField getValueAsSQL
+    )
+)
+
+ObjectsManager := Object clone do(
+    # This query manager manages queries.
+    model ::= nil
+
+    all := method(
+        model instances
+    )
+
+    filter := method(
+       model _queryFromSimpleCondition(call message argAt(0))
+    )
+
+    with := method(model_,
+        c := self clone
+        c setModel(model_)
+        c
     )
 )
