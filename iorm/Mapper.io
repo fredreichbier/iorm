@@ -222,8 +222,8 @@ Instance := Object clone do(
     save := method(
         if(alreadyExisting not,
             /* we have to make INSERT query first */
-            syncFields
             setValueOf(model primaryKey, model table generateID)
+            syncFields
             insert := Iorm InsertInto clone setTable(model table) setFields(fields)
             session executeNow(insert)
             alreadyExisting = true
