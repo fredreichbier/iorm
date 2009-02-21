@@ -113,7 +113,24 @@ Model := Object clone do(
                 return(instance)
             )
         )
-        return(nil)
+        # Not existing -> create
+        createInstanceFromPrimaryKey(pk)
+    )
+
+    createInstanceFromPrimaryKey := method(pk,
+        # create and return a new instance of the model
+        # retrieve all values from the database
+        condition := Iorm constructTree(table, 
+            Equals(
+                Field(primaryKey),
+                Value(pk)
+            )
+        )
+        query := Iorm Select clone setTable(table) setCondition(condition)
+        inst := self instance
+        inst setAlreadyExisting(true) # <- important
+        inst syncFromResult(session query(query))
+        inst
     )
 
     getFieldByName := method(name,
@@ -146,7 +163,6 @@ Instance := Object clone do(
             self newToBeSavedSlot(field name, field value)
             self fields append(field clone)
         )
-        setValueOf(model primaryKey, model table generateID)
     )
 
     newToBeSavedSlot := method(name, initial,
@@ -172,13 +188,18 @@ Instance := Object clone do(
     )
 
     syncFromResult := method(result,
+        result first # that's important.
         result fields foreach(name,
             field := getFieldByName(name)
             if(field isNil,
                 MapperError raise("Unknown field in result: #{ name }" interpolate)
             )
+            # set field's value
             field setValueFromSQL(result at(name))
+            # and the cached value
+            setValueOf(name, field value)
         )
+        result done # that's also important.
         self
     )
 
@@ -202,6 +223,7 @@ Instance := Object clone do(
         if(alreadyExisting not,
             /* we have to make INSERT query first */
             syncFields
+            setValueOf(model primaryKey, model table generateID)
             insert := Iorm InsertInto clone setTable(model table) setFields(fields)
             session executeNow(insert)
             alreadyExisting = true
@@ -240,7 +262,9 @@ Instance := Object clone do(
     )
 
     setValueOf := method(name, value,
-        updateSlot(name, value)
+        self updateSlot(name, value) 
+        # ... ok. if a field is named `name`, leaving the `self` is not a good idea,
+        # because the local argument slot will be updated. explicit self, need you.
     )
 
     getValueAsSQL := method(
