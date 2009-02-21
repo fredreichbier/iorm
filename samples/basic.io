@@ -24,6 +24,8 @@ Author := Iorm Model with(session) setup(
     # not relevant for SQLite, but we provide it anyway).
     # The value of a VarcharField has to be a Sequence.
     newField("name", Iorm VarcharField clone setLength(50))
+    # and now a text field
+    newField("info", Iorm TextField clone)
 )
 # Now, after having implicitly called `done`, we create the
 # table. If you are using an existing database, you won't
@@ -50,6 +52,7 @@ Book create
 max_goldt := Author instance
 # You can access the model fields like normal Io attributes.
 max_goldt setName("Max Goldt")
+max_goldt setInfo("... some information ...")
 # And that would also work: `name := max_goldt name`.
 # He has put together some books, of course. We'll add two of them.
 qq := Book instance setTitle("QQ") 
@@ -71,6 +74,8 @@ books := Book objects filter(author == max_goldt)
 books foreach(book,
     (" * " .. book title) println
 )
+"Information: #{ max_goldt info }" interpolate println
+
 # Or if you want to get all books named "QQ" (there is only one, indeed) you'll call:
 books_named_qq := Book objects filter(title == "QQ")
 books_named_qq foreach(book,

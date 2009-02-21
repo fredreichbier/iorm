@@ -89,6 +89,23 @@ VarcharField := Field clone do(
     )
 )
 
+TextField := Field clone do(
+    setTypeName("TEXT")
+    setIoProto(Sequence)
+
+    getValueAsSQL := method(
+        quote(value)
+    )
+
+    setValueFromSQL := method(sql,
+        self setValue(sql)
+    )
+
+    getCreateQuery := method(
+        """#{ quote(name) } #{ typeName } #{ getFlagsAsSQL }""" interpolate
+    )
+)
+
 ForeignKeyField := Field clone do(
     reference ::= nil
 
