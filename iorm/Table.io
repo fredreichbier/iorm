@@ -2,10 +2,10 @@ Table := Object clone do(
     session ::= nil
     name ::= nil
     fields ::= nil
-    last_id ::= 0
+    lastID ::= 0
 
     init := method(
-        last_id = 0
+        lastID = 0
         resend
     )
 
@@ -28,7 +28,13 @@ Table := Object clone do(
 
     generateID := method(
         # first ID is 1
-        last_id = last_id + 1
-        last_id
+        lastID = lastID + 1
+        lastID
+    )
+
+    updateLastID := method(new_id,
+        if(new_id > lastID,
+            setLastID(new_id)
+        )
     )
 )

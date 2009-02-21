@@ -130,6 +130,7 @@ Model := Object clone do(
         inst := self instance
         inst setAlreadyExisting(true) # <- important
         inst syncFromResult(session query(query))
+        table updateLastID(pk)
         inst
     )
 
