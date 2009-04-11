@@ -98,6 +98,7 @@ Model := Object clone do(
         result foreach(res,
             results append(getInstanceFromPrimaryKey(res at(primaryKey)))
         )
+        result done
         results
     )
 
