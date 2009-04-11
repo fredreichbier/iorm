@@ -10,6 +10,7 @@ Select := Object clone do(
     table ::= nil
     fields ::= nil 
     condition ::= nil
+    limit ::= nil
 
     getAsSQL := method(
         field_names := nil
@@ -22,7 +23,11 @@ Select := Object clone do(
         if(condition isNil not,
             where_clause = " WHERE #{ condition getAsSQL(session) }" interpolate
         )
-        return("""SELECT #{ field_names } FROM #{ table getNameAsSQL }#{ where_clause };""" interpolate)
+        rest := ""
+        if(limit isNil not,
+            rest = " LIMIT #{ session quote(limit asString) }" interpolate
+        )
+        return("""SELECT #{ field_names } FROM #{ table getNameAsSQL }#{ where_clause } #{ rest };""" interpolate)
     )
 )
 

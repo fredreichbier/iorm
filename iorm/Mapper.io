@@ -44,6 +44,8 @@ Model := Object clone do(
         if(primaryKey isNil,
             f := Iorm IntegerField clone
             f setName("pk")
+            f setIsPrimaryKey(true)
+            f setNotNull(true)
             fields prepend(f)
             setPrimaryKey("pk")
         )
@@ -80,9 +82,12 @@ Model := Object clone do(
         _queryFromSimpleCondition(call message argAt(0))
     )
 
-    _queryFromSimpleCondition := method(msg,
+    _queryFromSimpleCondition := method(msg, context,
         # parse
-        condition := Iorm parseSimpleCondition(table, msg)
+        context ifNilEval(
+            context = call sender
+        )
+        condition := Iorm parseSimpleCondition(table, msg, context)
         # make query
         query := Iorm Select clone setTable(table) setCondition(condition)
         query setFields(list(getPrimaryKeyField))
@@ -130,7 +135,6 @@ Model := Object clone do(
         inst := self instance
         inst setAlreadyExisting(true) # <- important
         inst syncFromResult(session query(query))
-        table updateLastID(pk)
         inst
     )
 
@@ -220,13 +224,48 @@ Instance := Object clone do(
         nil
     )
 
+    getPrimaryKey := method(
+        query := Iorm Select clone setTable(model table)
+        cond := Iorm Condition And withTable(model table)
+        query setFields(list(model getPrimaryKeyField))
+        query setCondition(cond)
+        query setLimit(1) # TODO: use 2, check if only 1 returned
+        self fields foreach(field,
+            if(model primaryKey == field name,
+                continue
+            )
+            cond addChild(
+                Iorm constructTree(model table,
+                    Equals(
+                        Field(field name),
+                        Value(field)
+                    )
+                )
+            )
+        )
+        result := session query(query)
+        syncFromResult(result)
+    )
+
+    fieldsWithoutPK := method(
+        f := list()
+        fields foreach(field,
+            if(field name == model primaryKey,
+                continue
+            )
+            f append(field)
+        )
+        f
+    )
+
     save := method(
         if(alreadyExisting not,
             /* we have to make INSERT query first */
-            setValueOf(model primaryKey, model table generateID)
             syncFields
-            insert := Iorm InsertInto clone setTable(model table) setFields(fields)
+            insert := Iorm InsertInto clone setTable(model table) setFields(fieldsWithoutPK)
             session executeNow(insert)
+            # set the primary key
+            getPrimaryKey
             alreadyExisting = true
         ,
             /* now do the UPDATE query */
@@ -240,7 +279,7 @@ Instance := Object clone do(
             )
             # TODO: can the primary key be updated? No, i think
             syncFields
-            update := Iorm Update clone setTable(model table) setFields(fields) setCondition(
+            update := Iorm Update clone setTable(model table) setFields(fieldsWithoutPK) setCondition(
                 condition
             )
             session executeNow(update)
@@ -283,7 +322,7 @@ ObjectsManager := Object clone do(
     )
 
     filter := method(
-       model _queryFromSimpleCondition(call message argAt(0))
+       model _queryFromSimpleCondition(call message argAt(0), call sender)
     )
 
     with := method(model_,
