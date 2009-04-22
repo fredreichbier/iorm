@@ -26,7 +26,7 @@ Session := Object clone do(
             stmt getAsSQL println
             self connection execute(stmt getAsSQL)
         )
-        queue = list() # TODO: something like `clear`?
+        queue empty
         self
     )
 
