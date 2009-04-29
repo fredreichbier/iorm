@@ -17,6 +17,9 @@ Book := Iorm Model with(session) setup(
 )
 # ... and no `Book create` - they're already existing!
 
+Author fetchAll
+Author objects all println
+
 # Now do a query
 max_goldt := Author objects filter(name == "Max Goldt") at(0)
 max_goldt info println

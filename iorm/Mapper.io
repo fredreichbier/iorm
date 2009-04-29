@@ -102,6 +102,18 @@ Model := Object clone do(
         results
     )
 
+    fetchAll := method(
+        query := Iorm Select clone setTable(table)
+        query setFields(list(getPrimaryKeyField))
+        result := session query(query)
+        # objectify results
+        result foreach(res,
+            getInstanceFromPrimaryKey(res at(primaryKey))
+        )
+        result done
+        self
+    )
+
     with := method(session,
         c := self clone
         c setSession(session)
