@@ -16,6 +16,17 @@ Session := Object clone do(
         return(inst)
     )
 
+    withMySQL := method(host, username, password, dbname,
+        conn := DBI with("mysql")
+        conn optionPut("host", host)
+        conn optionPut("username", username)
+        conn optionPut("password", password)
+        conn optionPut("dbname", dbname)
+        conn connect
+        inst := self clone setConnection(conn)
+        return(inst)
+    )
+
     init := method(
         self queue := list()
     )
