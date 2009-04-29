@@ -8,34 +8,34 @@ Model := Object clone do(
     tableName ::= nil
     table ::= nil
     instances := nil
-    to_be_saved := nil
+    toBeSaved := nil
     objects := nil
 
     init := method(
         fields = list()
         instances = list()
-        to_be_saved = list()
+        toBeSaved = list()
         objects = Iorm ObjectsManager with(self)
     )
 
     addToBeSaved := method(instance,
-        to_be_saved append(WeakLink clone setLink(instance))
+        toBeSaved append(WeakLink clone setLink(instance))
         self
     )
 
     removeToBeSaved := method(instance,
-        i := to_be_saved detect(item, item link == instance)
+        i := toBeSaved detect(item, item link == instance)
         if(i isNil not,
-            to_be_saved remove(i)
+            toBeSaved remove(i)
         )
         self
     )
 
     saveAll := method(
-        to_be_saved foreach(instance,
+        toBeSaved foreach(instance,
             instance link save
         )
-        to_be_saved empty
+        toBeSaved empty
         self
     )
 
