@@ -210,12 +210,13 @@ Instance := Object clone do(
         result fields foreach(name,
             field := getFieldByName(name)
             if(field isNil,
-                MapperError raise("Unknown field in result: #{ name }" interpolate)
+                "Unknown field in result: #{ name }" interpolate println
+            ,
+                # set field's value
+                field setValueFromSQL(result at(name))
+                # and the cached value
+                setValueOf(name, field value)
             )
-            # set field's value
-            field setValueFromSQL(result at(name))
-            # and the cached value
-            setValueOf(name, field value)
         )
         result done # that's also important.
         self
