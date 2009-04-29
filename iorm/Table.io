@@ -8,7 +8,8 @@ Table := Object clone do(
     )
 
     getNameAsSQL := method(
-        session quote(name)
+        /* don't quote, mysql doesn't like it. */
+        name
     )
 
     getFieldByName := method(name,
